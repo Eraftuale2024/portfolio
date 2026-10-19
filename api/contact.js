@@ -19,8 +19,10 @@ async function saveMessage({ name, email, message }) {
       headers: { ...dbHeaders(), Prefer: "return=minimal" },
       body: JSON.stringify({ name, email, message }),
     });
+    if (!r.ok) console.error("Supabase insert failed:", r.status, await r.text());
     return r.ok;
-  } catch {
+  } catch (e) {
+    console.error("Supabase request error:", e.message);
     return false;
   }
 }
@@ -32,10 +34,14 @@ async function tooManyRecent(email) {
       `${SUPABASE_URL}/rest/v1/messages?select=id` +
       `&email=eq.${encodeURIComponent(email)}&created_at=gte.${encodeURIComponent(since)}`;
     const r = await fetch(url, { headers: dbHeaders() });
-    if (!r.ok) return false;
+    if (!r.ok) {
+      console.error("Supabase rate-limit check failed:", r.status);
+      return false;
+    }
     const rows = await r.json();
     return rows.length >= 3;
-  } catch {
+  } catch (e) {
+    console.error("Supabase rate-limit error:", e.message);
     return false;
   }
 }
@@ -53,8 +59,10 @@ async function sendEmail({ to, subject, text, replyTo }) {
         ...(replyTo && { reply_to: replyTo }),
       }),
     });
+    if (!r.ok) console.error("Resend failed:", r.status, await r.text());
     return r.ok;
-  } catch {
+  } catch (e) {
+    console.error("Resend request error:", e.message);
     return false;
   }
 }
@@ -77,6 +85,8 @@ export default async function handler(req, res) {
 
   const dbReady = Boolean(SUPABASE_URL && SUPABASE_SERVICE_KEY);
   const mailReady = Boolean(RESEND_API_KEY && CONTACT_TO);
+  console.log("config check:", { dbReady, mailReady });
+
   if (!dbReady && !mailReady) return res.status(500).json({ error: "Server not configured" });
 
   if (dbReady && (await tooManyRecent(email))) {
@@ -93,6 +103,8 @@ export default async function handler(req, res) {
         text: `From: ${name} <${email}>\n\n${message}`,
       })
     : false;
+
+  console.log("result:", { saved, notified });
 
   if (!saved && !notified) return res.status(502).json({ error: "Could not deliver message" });
   return res.status(200).json({ ok: true });
