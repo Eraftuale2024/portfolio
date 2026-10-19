@@ -28,12 +28,12 @@ export const experienceDetails = {
     "Redesigned stock transfers to match the company's printed forms",
   ],
   "ZE-Tech": [
-    "Remote software engineering on Odoo ",
-   
+    "Remote software engineering on Odoo 17 ",
+    
   ],
   "EASE Engineering": [
-    "Led  Odoo 19 implementation",
-    
+    "Led n Odoo 19 implementation",
+   
   ],
   "Ashewa Technology": [
     "Combined functional analysis with custom development on Odoo projects",
@@ -42,3 +42,45 @@ export const experienceDetails = {
     "Configured Odoo modules and trained users as a functional consultant",
   ],
 };
+
+// Case studies. "result" is left empty on purpose: add ONE real, true line per study,
+// for example: result: "Used daily by 1,200 students across 3 campuses"
+// A study with an empty result simply hides that column.
+export const caseStudies = [
+  {
+    title: "School management system",
+    kind: "ERP, built from scratch",
+    challenge: "A school needed one system connecting academics, finance and HR, instead of separate tools that do not share data.",
+    built: [
+      "A 22-module Odoo 17 system integrated with finance, HR and payroll",
+      "Online exams and parent and student portals",
+      "Announcements, activity gallery and mark transfer sheets",
+    ],
+    result: "",
+    tags: ["Odoo 17", "Portals", "Finance", "HR"],
+  },
+  {
+    title: "Payroll and tender evaluation",
+    kind: "ERP customization",
+    challenge: "Payroll had to follow Ethiopian overtime rates and approval rules, and vendor selection needed a consistent, documented scoring method.",
+    built: [
+      "Payroll rules with Ethiopian overtime rates and approvals",
+      "Weighted tender evaluation criteria, separate for goods and services",
+      "Scoring aligned to Ethiopian procurement practice",
+    ],
+    result: "",
+    tags: ["Payroll", "Purchase", "Workflow"],
+  },
+  {
+    title: "English–Amharic machine translation",
+    kind: "AI and data",
+    challenge: "Translate between English and Amharic, a lower-resource language pair, and find which architecture works better.",
+    built: [
+      "A sequence-to-sequence LSTM model and an attention-based LSTM model",
+      "Evaluation comparing the two approaches",
+      "Deployment of the trained model",
+    ],
+    result: "",
+    tags: ["NLP", "Deep learning", "Python"],
+  },
+];

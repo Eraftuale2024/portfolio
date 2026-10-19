@@ -2,6 +2,7 @@ import Hero from "./components/Hero.jsx";
 import About from "./components/About.jsx";
 import Expertise from "./components/Expertise.jsx";
 import Services from "./components/Services.jsx";
+import CaseStudies from "./components/CaseStudies.jsx";
 import Work from "./components/Work.jsx";
 import Experience from "./components/Experience.jsx";
 import Contact from "./components/Contact.jsx";
@@ -19,6 +20,7 @@ export default function App() {
           <nav aria-label="Main">
             <a href="#about">About</a>
             <a href="#services">Services</a>
+            <a href="#case-studies">Case studies</a>
             <a href="#work">Projects</a>
             <a href="#experience">Experience</a>
             <a href="#contact">Contact</a>
@@ -31,6 +33,7 @@ export default function App() {
         <About />
         <Expertise />
         <Services />
+        <CaseStudies />
         <Work />
         <Experience />
         <Contact />

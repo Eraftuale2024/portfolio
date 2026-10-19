@@ -2,7 +2,7 @@ import { useState } from "react";
 import { profile } from "../data/profile.js";
 
 export default function Contact() {
-  const [status, setStatus] = useState("idle"); // idle | sending | sent | fallback
+  const [status, setStatus] = useState("idle"); // idle | sending | sent | limited | fallback
 
   async function submit(e) {
     e.preventDefault();
@@ -15,6 +15,10 @@ export default function Contact() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
+      if (res.status === 429) {
+        setStatus("limited");
+        return;
+      }
       if (!res.ok) throw new Error();
       form.reset();
       setStatus("sent");
@@ -41,11 +45,22 @@ export default function Contact() {
             <p><span>Phone</span><a href={`tel:${tel}`}>{profile.phone}</a></p>
             <p><span>Email</span><a href={`mailto:${profile.email}`}>{profile.email}</a></p>
             <p><span>Alternative email</span><a href={`mailto:${profile.email2}`}>{profile.email2}</a></p>
+            {profile.telegram && (
+              <p><span>Telegram</span><a href={`https://t.me/${profile.telegram}`} target="_blank" rel="noreferrer">@{profile.telegram}</a></p>
+            )}
+            {profile.linkedin && (
+              <p><span>LinkedIn</span><a href={profile.linkedin} target="_blank" rel="noreferrer">View my profile</a></p>
+            )}
             <p><span>GitHub</span><a href={profile.github} target="_blank" rel="noreferrer">github.com/Eraftuale2024</a></p>
+            {profile.booking && (
+              <p><span>Book a call</span><a href={profile.booking} target="_blank" rel="noreferrer">Choose a time</a></p>
+            )}
             <p><span>Location</span>{profile.location}</p>
           </div>
 
           <form onSubmit={submit} className="card form">
+            {/* Honeypot field: hidden from people, filled in by bots */}
+            <input name="website" className="hp" tabIndex={-1} autoComplete="off" aria-hidden="true" />
             <label>Name<input name="name" required maxLength={100} /></label>
             <label>Email<input name="email" type="email" required maxLength={150} /></label>
             <label>Message<textarea name="message" rows={5} required maxLength={3000} /></label>
@@ -54,6 +69,7 @@ export default function Contact() {
             </button>
             <p role="status" className="note">
               {status === "sent" && "Message sent. I will reply soon."}
+              {status === "limited" && "You have sent several messages recently. Please try again in a few minutes."}
               {status === "fallback" && "Opening your email app so you can send the message."}
             </p>
           </form>

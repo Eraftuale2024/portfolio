@@ -7,6 +7,8 @@ export const profile = {
   email2: "abrahamgetachew4384@gmail.com",
   phone: "+251 943 941 897",
   github: "https://github.com/Eraftuale2024/",
+  telegram: "@Altholder369",  
+  linkedin: "https://www.linkedin.com/in/abraham-getachew-a17821316/",  
   location: "Addis Ababa, Ethiopia",
   education: "BAIS, Addis Ababa University",
 };

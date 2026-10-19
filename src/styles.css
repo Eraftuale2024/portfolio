@@ -171,3 +171,15 @@ footer{border-top:1px solid var(--line);padding:24px 0;color:var(--muted);font-s
   html{scroll-behavior:auto}
   .project{transition:none}
 }
+/* ============ Case studies ============ */
+.cs-list{display:grid;gap:14px}
+.cs header{display:flex;justify-content:space-between;align-items:baseline;gap:16px;flex-wrap:wrap;margin-bottom:16px}
+.cs header h3{margin:0;font-size:19px}
+.cs header span{color:var(--accent-text);font-weight:600;font-size:14.5px}
+.cs-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:24px}
+.cs-cols h4{font-size:12.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+.cs-cols p,.cs-cols li{color:var(--ink);font-size:15.5px;margin:0}
+.cs-cols ul{margin:0;padding-left:18px}
+.cs-cols li{margin:3px 0}
+.cs-cols .result{color:var(--mint);font-weight:600}
+.cs .tags{margin-top:18px;padding-top:0}
