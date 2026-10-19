@@ -39,10 +39,13 @@ export default function App() {
         <Contact />
       </main>
 
-      <footer>
+            <footer>
         <div className="wrap foot">
           <span>© {new Date().getFullYear()} {profile.name}</span>
-          <a href={profile.github} target="_blank" rel="noreferrer">GitHub</a>
+          <span>
+            <a href="/privacy.html">Privacy</a>
+            <a href={profile.github} target="_blank" rel="noreferrer">GitHub</a>
+          </span>
         </div>
       </footer>
     </>
