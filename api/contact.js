@@ -1,63 +1,99 @@
-import { useState } from "react";
-import { profile } from "../data/profile.js";
+// Vercel serverless function (Node.js).
+// Saves each message to Supabase and emails it to the owner.
 
-export default function Contact() {
-  const [status, setStatus] = useState("idle"); // idle | sending | sent | fallback
+const { SUPABASE_URL, SUPABASE_SERVICE_KEY, RESEND_API_KEY, CONTACT_TO } = process.env;
 
-  async function submit(e) {
-    e.preventDefault();
-    setStatus("sending");
-    const form = e.target;
-    const data = Object.fromEntries(new FormData(form));
-    try {
-      const res = await fetch("/api/contact", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) throw new Error();
-      form.reset();
-      setStatus("sent");
-    } catch {
-      // Backend not available (for example on localhost): open the email app instead.
-      const subject = encodeURIComponent(`Portfolio message from ${data.name}`);
-      const body = encodeURIComponent(`${data.message}\n\nFrom: ${data.name} (${data.email})`);
-      window.location.href = `mailto:${profile.email}?subject=${subject}&body=${body}`;
-      setStatus("fallback");
-    }
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function dbHeaders() {
+  const h = { apikey: SUPABASE_SERVICE_KEY, "Content-Type": "application/json" };
+  // Older service_role keys are JWTs and also go in the Authorization header.
+  if (SUPABASE_SERVICE_KEY.startsWith("eyJ")) h.Authorization = `Bearer ${SUPABASE_SERVICE_KEY}`;
+  return h;
+}
+
+async function saveMessage({ name, email, message }) {
+  try {
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/messages`, {
+      method: "POST",
+      headers: { ...dbHeaders(), Prefer: "return=minimal" },
+      body: JSON.stringify({ name, email, message }),
+    });
+    return r.ok;
+  } catch {
+    return false;
+  }
+}
+
+async function tooManyRecent(email) {
+  try {
+    const since = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+    const url =
+      `${SUPABASE_URL}/rest/v1/messages?select=id` +
+      `&email=eq.${encodeURIComponent(email)}&created_at=gte.${encodeURIComponent(since)}`;
+    const r = await fetch(url, { headers: dbHeaders() });
+    if (!r.ok) return false;
+    const rows = await r.json();
+    return rows.length >= 3;
+  } catch {
+    return false;
+  }
+}
+
+async function sendEmail({ to, subject, text, replyTo }) {
+  try {
+    const r = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${RESEND_API_KEY}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        from: "Portfolio <onboarding@resend.dev>",
+        to: [to],
+        subject,
+        text,
+        ...(replyTo && { reply_to: replyTo }),
+      }),
+    });
+    return r.ok;
+  } catch {
+    return false;
+  }
+}
+
+export default async function handler(req, res) {
+  if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
+
+  const body = req.body || {};
+
+  // Honeypot: real visitors never fill this hidden field, bots usually do.
+  if (body.website) return res.status(200).json({ ok: true });
+
+  const name = typeof body.name === "string" ? body.name.trim().slice(0, 100) : "";
+  const email = typeof body.email === "string" ? body.email.trim().slice(0, 150) : "";
+  const message = typeof body.message === "string" ? body.message.trim() : "";
+
+  if (!name || !EMAIL_RE.test(email) || !message || message.length > 3000) {
+    return res.status(400).json({ error: "Invalid input" });
   }
 
-  return (
-    <section id="contact" className="sec">
-      <div className="wrap">
-        <h2>Let’s talk about your project</h2>
-        <p className="intro">Tell me what your team does today and what you want to change. I reply with a clear plan.</p>
+  const dbReady = Boolean(SUPABASE_URL && SUPABASE_SERVICE_KEY);
+  const mailReady = Boolean(RESEND_API_KEY && CONTACT_TO);
+  if (!dbReady && !mailReady) return res.status(500).json({ error: "Server not configured" });
 
-        <div className="contact-grid">
-          <div className="card details">
-            <h3>Contact details</h3>
-            <p><span>Email</span><a href={`mailto:${profile.email}`}>{profile.email}</a></p>
-            {profile.phone && (
-              <p><span>Phone</span><a href={`tel:${profile.phone.replace(/\s/g, "")}`}>{profile.phone}</a></p>
-            )}
-            <p><span>GitHub</span><a href={profile.github} target="_blank" rel="noreferrer">github.com/Eraftuale2024</a></p>
-            <p><span>Location</span>{profile.location}</p>
-          </div>
+  if (dbReady && (await tooManyRecent(email))) {
+    return res.status(429).json({ error: "Too many messages. Please try again later." });
+  }
 
-          <form onSubmit={submit} className="card form">
-            <label>Name<input name="name" required maxLength={100} /></label>
-            <label>Email<input name="email" type="email" required maxLength={150} /></label>
-            <label>Message<textarea name="message" rows={5} required maxLength={3000} /></label>
-            <button className="btn main" disabled={status === "sending"}>
-              {status === "sending" ? "Sending…" : "Send message"}
-            </button>
-            <p role="status" className="note">
-              {status === "sent" && "Message sent. I will reply soon."}
-              {status === "fallback" && "Opening your email app so you can send the message."}
-            </p>
-          </form>
-        </div>
-      </div>
-    </section>
-  );
+  const saved = dbReady ? await saveMessage({ name, email, message }) : false;
+
+  const notified = mailReady
+    ? await sendEmail({
+        to: CONTACT_TO,
+        replyTo: email,
+        subject: `New portfolio message from ${name}`,
+        text: `From: ${name} <${email}>\n\n${message}`,
+      })
+    : false;
+
+  if (!saved && !notified) return res.status(502).json({ error: "Could not deliver message" });
+  return res.status(200).json({ ok: true });
 }
